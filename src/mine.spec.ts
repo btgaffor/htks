@@ -26,7 +26,7 @@ describe('Functor', () => {
         expect(
             arrayFunctorInstance.map(n => String(n), [1, 2, 3])
         ) .toEqual(
-            [2, 3, 4]
+            ["1", "2", "3"]
         );
 
         expect(
@@ -298,12 +298,6 @@ describe('Applicative', () => {
         const flipc = <A, B, C>(f: (a: A, b: B) => C) => (b: B) => (a: A) => f(a, b);
         const flippedAp = flipc(maybeApplicativeInstance.ap)
 
-        // const a = P(maybeApplicativeInstance.pure((a: number) => (b: number) => a + b));
-        // const b = a.p(flippedAp(some(1)));
-        // const c = b.p(flippedAp(some(4)));
-        // const d = c.v;
-        // d
-
         expect(
             P(maybeApplicativeInstance.pure((a: number) => (b: number) => a + b)).
                 p(flippedAp(some(1))).
@@ -313,109 +307,33 @@ describe('Applicative', () => {
             some(5)
         )
 
-        const Fake = <F extends (a: any) => any>(f: F) => {
-            type A = F extends (a: infer A) => any ? A : never;
-            type R = F extends (a: any) => infer R ? R : never;
-
-            return {
-                v: f,
-                p: (a: A) => Fake<R>(f(a))
-            }
-        }
-
-        const fa = Fake((a: number) => (b: number) => a + b);
-        const fb = fa.p(3);
-        const fc = fb.p(4);
-        const fd = fc.v;
-        fd
-
-        const Z = <F>(f: F) => {
-            type Z = F extends { type: "some", value: infer Z } ? Z : never;
-            type A = F extends Array<(a: infer A) => any> ? A : never;
-            type R = F extends Array<(a: any) => infer R> ? R : never;
-
-            return {
-                z: 0 as Z,
-                a: 0 as A,
-                r: 0 as R
-            }
-        }
-        const zz = Z(some((a: number) => (b: number) => a + b));
-        zz
-
-        type II = number;
-        type MM = Maybe<II>;
-        const ee = <F>(f: Maybe<F>) => {
-            return 0 as F;
-        }
-        const eee = ee(some(3));
-
-        const AW = <T>(i: Applicative<T>) => {
-            const flippedAp = flipc(i.ap);
-
+        const ApplicativePipe = <T>(i: Applicative<T>) => {
             return <F extends (a: any) => any>(f: F) => {
-                const af = i.pure(f);
+                const pureF = i.pure(f);
 
-                const PA = <F extends (a: any) => any>(f: $<T, [F]>) => {
-                    // const p = maybeApplicativeInstance.pure(f)
-
-                    // type A = F extends { type: "some", value: (a: infer AAA) => any } ? AAA : never;
-                    // type R = F extends { type: "some", value: (a: any) => infer RRR } ? RRR : never;
-
+                const Pipe = <F extends (a: any) => any>(f: $<T, [F]>) => {
                     type A = F extends (a: infer A) => any ? A : never;
                     type R = F extends (a: any) => infer R ? R : never;
 
                     return {
-                        v: f,
-                        p: (a: $<T, [A]>) => {
-                            return PA(flippedAp<A, R>(a)(f))
+                        value: f,
+                        pipe: (a: $<T, [A]>) => {
+                            return Pipe(i.ap<A, R>(f, a))
                         }
                     }
                 }
 
-                return PA(af);
+                return Pipe(pureF);
             }
         }
 
-        const maip: Maybe<(a: number) => (b: number) => number> = maybeApplicativeInstance.pure((a: number) => (b: number) => a + b);
-
-        const AWWWW = AW(maybeApplicativeInstance);
-        const aa = AWWWW((a: number) => (b: number) => a + b);
-        const bb = aa.p(some(1));
-        const cc = bb.p(some(4));
-        const dd = cc.v;
-        dd
-
-        const AP = <A>(f: A) => {
-            const aa = P(f);
-
-            // type Inner = <A, B>(a: Maybe<(a: A) => B>) => {
-            //     v: Maybe<(a: A) => B>,
-            //     p: (n: Maybe<A>) => Maybe<B>;
-            // }
-            const inner = <A>(a: Maybe<A>) => ({
-                v: aa.v,
-                p: <N>(n: Maybe<N>) => {
-                    const f = flippedAp(n);
-                    return AP(f(a))
-                }
-            })
-
-            return inner(maybeApplicativeInstance.pure(f));
-        }
-
-
-        // const API = AP(maybeApplicativeInstance);
-        const a = AP((a: number) => (b: number) => a + b);
-        const b = a.p(some(1));
-        const c = b.v;
-        c
-
         expect(
-            AP(maybeApplicativeInstance)((a: number) => (b: number) => a + b).
-                p(some(1)).
-                p(some(4)).
-                v
+            ApplicativePipe(maybeApplicativeInstance)(
+                (a: number) => (b: number) => a + b
+            ).
+                pipe(some(1)).
+                pipe(some(4)).
+                value
         ).toEqual(
             some(5)
         )
