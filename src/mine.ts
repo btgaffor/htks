@@ -18,8 +18,7 @@ export const Applicative = <T>({ pure, ap }: Pick<Applicative<T>, 'pure' | 'ap'>
     pure,
     ap,
     apc: f => a => ap(f, a),
-    map: (f, a) => ap(pure(f), a),
-    mapc: f => a => ap(pure(f), a),
+    ...Functor({
+        map: (f, a) => ap(pure(f), a),
+    })
 });
-
-export const a = (a: number) => a;
