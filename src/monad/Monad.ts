@@ -2,18 +2,19 @@ import { $ } from '../';
 import { Applicative } from '../mine'
 
 export interface Monad<T> extends Applicative<T> {
-    return: Applicative<T>["pure"];
-    fmap: <A, B>(ta: $<T, [A]>, f: (x: A) => $<T, [B]>) => $<T, [B]>;
+    bind: <A, B, X>(ta: $<T, [A, X]>, f: (x: A) => $<T, [B, X]>) => $<T, [B, X]>;
 }
-export const Monad = <T>({ pure, fmap }: Pick<Monad<T>, 'pure' | 'fmap'>): Monad<T> => ({
-    pure,
-    fmap,
-    return: pure,
+export const Monad = <T>({ pure, bind }: Pick<Monad<T>, 'pure' | 'bind'>): Monad<T> => ({
+    bind,
     ...Applicative({
         pure,
-        ap: (tf, ta) => fmap(tf, f => fmap(ta, x => pure(f(x))))
+        ap: (tf, ta) => bind(tf, f => bind(ta, x => pure(f(x))))
     })
 })
+
+// export const map2 = <T>(i: Monad<T>) => <A, B, C D, E>(f: (a: D, b: D) => $<T, [C]>, ta: (a: A) => $<T, [B]>, tb: (c: C) => $<T, [D]>): $<T, [E]> => {
+    
+// }
 
 /*
 const process = i.fmapb(
@@ -64,7 +65,7 @@ const Do1 = <T>(i: Monad<T>) => {
         const pa = f(context);
 
         return (key2: any, f2: any) => {
-            return i.fmap(
+            return i.bind(
                 pa,
                 (nextValue: any) => {
                     context[key] = nextValue
@@ -84,12 +85,12 @@ const Do2 = <T>(i: Monad<T>) => {
         return (key2: any, f2: any) => {
             return (key3: any, f3: any) => {
 
-                return i.fmap(
+                return i.bind(
                     // context[key0] = value1
                     f1(context),
                     (value1: any) => {
                         context[key1] = value1
-                        return i.fmap(
+                        return i.bind(
                             f2(context),
                             (value2: any) => {
                                 context[key2] = value2;
@@ -116,7 +117,7 @@ export const Do = <T>(i: Monad<T>, args: Array<{ [key: string]: any }>) => {
             return f(context);
         }
 
-        return i.fmap(
+        return i.bind(
             f(context),
             (nextValue: any): any => createDoChain({ ...context, [key]: nextValue }, rest)
         );
